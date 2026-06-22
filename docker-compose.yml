@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  eureka-server:
+    build: ./eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - postgres
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka-server
+      - user-service
+      - order-service
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/demo
+      SPRING_DATASOURCE_USERNAME=demo
+      SPRING_DATASOURCE_PASSWORD=demo
+    depends_on:
+      - postgres
+      - eureka-server
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/demo
+      SPRING_DATASOURCE_USERNAME=demo
+      SPRING_DATASOURCE_PASSWORD=demo
+    depends_on:
+      - postgres
+      - eureka-server
+
+volumes:
+  pgdata:
